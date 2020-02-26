@@ -1,17 +1,31 @@
 # This class represents a todo item and its associated
 # data: name and description. There's also a "done"
 # flag to show whether this todo item is done.
+require 'bundler/setup'
+require 'stamp'
 
 class Todo
   DONE_MARKER = 'X'
   UNDONE_MARKER = ' '
 
-  attr_accessor :title, :description, :done
+  attr_accessor :title, :description, :done, :due_date
 
   def initialize(title, description='')
     @title = title
     @description = description
     @done = false
+  end
+
+  def to_s
+    result = "[#{done? ? DONE_MARKER : UNDONE_MARKER}] #{title}"
+    result += due_date.stamp(' (Due: Friday January 6)') if due_date
+    result
+  end
+
+  def ==(otherTodo)
+    title == otherTodo.title &&
+      description == otherTodo.description &&
+      done == otherTodo.done
   end
 
   def done!
@@ -25,16 +39,6 @@ class Todo
   def undone!
     self.done = false
   end
-
-  def to_s
-    "[#{done? ? DONE_MARKER : UNDONE_MARKER}] #{title}"
-  end
-
-  def ==(otherTodo)
-    title == otherTodo.title &&
-      description == otherTodo.description &&
-      done == otherTodo.done
-  end
 end
 
 # This class represents a collection of Todo objects.
@@ -47,6 +51,31 @@ class TodoList
   def initialize(title)
     @title = title
     @todos = []
+  end
+
+  def to_s
+    text = "---- #{title} ----\n"
+    text << @todos.map(&:to_s).join("\n")
+    text
+  end
+
+  def each
+    @todos.each do |todo|
+      yield(todo)
+    end
+    self
+  end
+
+  def select
+    list = TodoList.new(title)
+    each do |todo|
+      list.add(todo) if yield(todo)
+    end
+    list
+  end
+
+  def to_a
+    @todos
   end
 
   def size
@@ -100,31 +129,6 @@ class TodoList
 
   def remove_at(idx)
     @todos.delete(item_at(idx))
-  end
-
-  def to_s
-    text = "---- #{title} ----\n"
-    text << @todos.map(&:to_s).join("\n")
-    text
-  end
-
-  def to_a
-    @todos
-  end
-
-  def each
-    @todos.each do |todo|
-      yield(todo)
-    end
-    self
-  end
-
-  def select
-    list = TodoList.new(title)
-    each do |todo|
-      list.add(todo) if yield(todo)
-    end
-    list
   end
 
   # returns first Todo by title, or nil if no match
